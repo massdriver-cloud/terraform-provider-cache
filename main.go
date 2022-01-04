@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"terraform-provider-cachetest/cache"
+	"github.com/massdriver-cloud/terraform-provider-cache/cache"
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5/tf5server"
@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	tf5server.Serve("registry.terraform.io/massdriver-cloud/cachetest", func() tfprotov5.ProviderServer {
+	tf5server.Serve("registry.terraform.io/massdriver-cloud/cache", func() tfprotov5.ProviderServer {
 		return factory.Server()
 	})
 }

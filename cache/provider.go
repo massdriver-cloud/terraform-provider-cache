@@ -42,7 +42,7 @@ func GetResourceType(name string) (tftypes.Type, error) {
 // GetProviderResourceSchema contains the definitions of all supported resources
 func GetProviderResourceSchema() map[string]*tfprotov5.Schema {
 	return map[string]*tfprotov5.Schema{
-		"cachetest_value": {
+		"cache_store": {
 			Version: 1,
 			Block: &tfprotov5.SchemaBlock{
 				BlockTypes: []*tfprotov5.SchemaNestedBlock{},

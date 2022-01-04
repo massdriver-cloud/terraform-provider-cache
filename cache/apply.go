@@ -2,6 +2,8 @@ package cache
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -38,33 +40,26 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 	}
 	s.logger.Trace("[ApplyResourceChange][PlannedState] %#v", applyPlannedState)
 
-	applyPriorState, err := req.PriorState.Unmarshal(rt)
+	applyPlannedValue := make(map[string]tftypes.Value)
+	err = applyPlannedState.As(&applyPlannedValue)
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  "Failed to unmarshal prior resource state",
+			Summary:  "Failed to extract planned resource state from tftypes.Value",
 			Detail:   err.Error(),
 		})
 		return resp, nil
 	}
-	s.logger.Trace("[ApplyResourceChange]", "[PriorState]", dump(applyPriorState))
 
-	s.logger.Trace("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-	s.logger.Trace("[ApplyResourceChange]", "[PriorState]", dump(applyPriorState))
-	s.logger.Trace("[ApplyResourceChange]", "[req.PlannedState]", dump(req.PlannedState))
-	s.logger.Trace("[ApplyResourceChange]", "[PlannedState]", dump(applyPlannedState))
+	// For now, all we need to do is set the timestamp
+	timestamp := time.Now().Unix()
+	applyPlannedValue["timestamp"] = tftypes.NewValue(tftypes.String, fmt.Sprint(timestamp))
 
-	newVal := make(map[string]tftypes.Value)
-	applyPlannedState.As(&newVal)
+	applyStateVal := tftypes.NewValue(applyPlannedState.Type(), applyPlannedValue)
 
-	newVal["timestamp"] = tftypes.NewValue(tftypes.String, "testing")
+	s.logger.Trace("[ApplyResourceChange]", "[PropStateVal]", dump(applyStateVal))
 
-	newStateVal := tftypes.NewValue(applyPlannedState.Type(), newVal)
-
-	s.logger.Trace("[ApplyResourceChange]", "[PropStateVal]", dump(newStateVal))
-
-	plannedState, err := tfprotov5.NewDynamicValue(rt, newStateVal)
-	//plannedState, err := tfprotov5.NewDynamicValue(applyPlannedState.Type(), newStateVal)
+	plannedState, err := tfprotov5.NewDynamicValue(rt, applyStateVal)
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
@@ -76,6 +71,5 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 	s.logger.Trace("[ApplyResourceChange]", "[PlannedState]", dump(plannedState))
 
 	resp.NewState = &plannedState
-	//resp.NewState = req.PlannedState
 	return resp, nil
 }

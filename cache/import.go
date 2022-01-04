@@ -13,6 +13,9 @@ func (s *RawProviderServer) ImportResourceState(ctx context.Context, req *tfprot
 	// Without the user supplying the GRV there is no way to fully identify the resource when making the Get API call to K8s.
 	// Presumably the Kubernetes API machinery already has a standard for expressing such a group. We should look there first.
 	resp := &tfprotov5.ImportResourceStateResponse{}
-
+	resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+		Severity: tfprotov5.DiagnosticSeverityError,
+		Summary:  "Import not supported",
+	})
 	return resp, nil
 }
