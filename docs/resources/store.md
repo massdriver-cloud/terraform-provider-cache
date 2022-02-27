@@ -17,7 +17,7 @@ resource "cache_store" "example" {
 }
 
 output "example" {
-    value = cache_store.test.value
+    value = cache_store.example.value
 }
 ```
 
@@ -36,7 +36,7 @@ resource "cache_store" "example" {
 }
 
 output "example" {
-    value = cache_store.test.value
+    value = cache_store.example.value
 }
 ```
 
