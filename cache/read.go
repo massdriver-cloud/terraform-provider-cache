@@ -42,7 +42,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
 			Summary:  "Failed to read resource",
-			Detail:   "Incomplete of missing state",
+			Detail:   "Incomplete or missing state",
 		})
 		return resp, nil
 	}
