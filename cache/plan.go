@@ -87,7 +87,8 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		return resp, nil
 	}
 
-	if proposedVal["timestamp"].IsNull() {
+	// if timestamp is null, this is a create. If the keepers have changed, we do the same steps (its like a re-create)
+	if proposedVal["timestamp"].IsNull() || !proposedVal["keepers"].Equal(priorVal["keepers"]) {
 		// plan for Create
 		proposedVal["timestamp"] = tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
 		propStateVal := tftypes.NewValue(proposedState.Type(), proposedVal)
@@ -106,7 +107,7 @@ func (s *RawProviderServer) PlanResourceChange(ctx context.Context, req *tfproto
 		resp.PlannedState = &plannedState
 	} else {
 		// plan for Update
-		// NO-OP
+		// This should be a no-op
 		resp.PlannedState = req.PriorState
 	}
 

@@ -12,7 +12,7 @@ func (s *RawProviderServer) GetProviderSchema(ctx context.Context, req *tfprotov
 
 	cfgSchema := GetProviderConfigSchema()
 
-	resSchema := GetProviderResourceSchema()
+	resSchema := GetProviderResourceSchemas()
 
 	log.Println("--------------------------GetProviderSchema Called------------------------------")
 

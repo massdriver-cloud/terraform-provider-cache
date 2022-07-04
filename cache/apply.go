@@ -63,9 +63,11 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 	}
 
 	switch {
-	case applyPriorState.IsNull():
-		// This is a "create"
-		// All we need to do is update the timestamp
+	case applyPlannedState.IsNull():
+		// Delete the resource
+		return resp, nil
+	default:
+		// All we need to do is set the timestamp
 		timestamp := time.Now().Unix()
 		applyPlannedValue["timestamp"] = tftypes.NewValue(tftypes.String, fmt.Sprint(timestamp))
 
@@ -85,16 +87,6 @@ func (s *RawProviderServer) ApplyResourceChange(ctx context.Context, req *tfprot
 		s.logger.Trace("[ApplyResourceChange]", "[PlannedState]", dump(plannedState))
 
 		resp.NewState = &plannedState
-	case !applyPlannedState.IsNull() && !applyPriorState.IsNull():
-		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
-			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  "Attempting to perform update on cache resource",
-			Detail:   "An update operation was attempted on a cache resource. This should not occur. Please report this to the provider maintainers.",
-		})
-		return resp, nil
-	case applyPlannedState.IsNull():
-		// Delete the resource
-		return resp, nil
 	}
 
 	return resp, nil

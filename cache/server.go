@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -38,24 +39,53 @@ func (s *RawProviderServer) ValidateDataSourceConfig(ctx context.Context, req *t
 	return resp, nil
 }
 
-// UpgradeResourceState isn't really useful in this provider, but we have to loop the state back through to keep Terraform happy.
 func (s *RawProviderServer) UpgradeResourceState(ctx context.Context, req *tfprotov5.UpgradeResourceStateRequest) (*tfprotov5.UpgradeResourceStateResponse, error) {
 	resp := &tfprotov5.UpgradeResourceStateResponse{}
 	resp.Diagnostics = []*tfprotov5.Diagnostic{}
 
-	sch := GetProviderResourceSchema()
-	rt := GetObjectTypeFromSchema(sch[req.TypeName])
+	var resourceValue tftypes.Value
+	var err error
 
-	rv, err := req.RawState.Unmarshal(rt)
-	if err != nil {
-		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
-			Severity: tfprotov5.DiagnosticSeverityError,
-			Summary:  "Failed to decode old state during upgrade",
-			Detail:   err.Error(),
-		})
-		return resp, nil
+	stateSchemaVersion := req.Version
+	currentSchemaVersion := GetProviderResourceSchemas()[req.TypeName].Version
+	resourceType := GetObjectTypeFromSchema(GetProviderResourceSchemas()[req.TypeName])
+
+	if stateSchemaVersion != currentSchemaVersion {
+		stateSchema := GetProviderResourceSchemasByVersion(req.Version)[req.TypeName]
+		stateType := GetObjectTypeFromSchema(stateSchema)
+		resourceValue, err = req.RawState.Unmarshal(stateType)
+		if err != nil {
+			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Failed to decode old state during upgrade",
+				Detail:   err.Error(),
+			})
+			return resp, nil
+		}
+
+		upgradeFunc := GetProviderResourceUpgradeFunctions()[req.TypeName]
+		resourceValue, err = upgradeFunc(resourceValue, stateSchemaVersion)
+		if err != nil {
+			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Failed to upgrade the schema of the resource",
+				Detail:   err.Error(),
+			})
+			return resp, nil
+		}
+	} else {
+		resourceValue, err = req.RawState.Unmarshal(resourceType)
+		if err != nil {
+			resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
+				Severity: tfprotov5.DiagnosticSeverityError,
+				Summary:  "Failed to decode old state during upgrade",
+				Detail:   err.Error(),
+			})
+			return resp, nil
+		}
 	}
-	us, err := tfprotov5.NewDynamicValue(rt, rv)
+
+	us, err := tfprotov5.NewDynamicValue(resourceType, resourceValue)
 	if err != nil {
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,

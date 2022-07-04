@@ -61,7 +61,7 @@ func (s *RawProviderServer) ReadResource(ctx context.Context, req *tfprotov5.Rea
 		resp.Diagnostics = append(resp.Diagnostics, &tfprotov5.Diagnostic{
 			Severity: tfprotov5.DiagnosticSeverityError,
 			Summary:  "Current state of resource has no 'value' attribute",
-			Detail:   "This should not happen. The state may be incomplete or corrupted.\nIf this error is reproducible, plese report issue to provider maintainers.",
+			Detail:   "This should not happen. The state may be incomplete or corrupted.\nIf this error is reproducible, please report issue to provider maintainers.",
 		})
 		return resp, nil
 	}
