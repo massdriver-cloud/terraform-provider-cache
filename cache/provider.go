@@ -31,7 +31,7 @@ func GetObjectTypeFromSchema(schema *tfprotov5.Schema) tftypes.Type {
 
 // GetResourceType returns the tftypes.Type of a resource of type 'name'
 func GetResourceType(name string) (tftypes.Type, error) {
-	sch := GetProviderResourceSchema()
+	sch := GetProviderResourceSchemas()
 	rsch, ok := sch[name]
 	if !ok {
 		return tftypes.DynamicPseudoType, fmt.Errorf("unknown resource %s - cannot find schema", name)
@@ -40,31 +40,22 @@ func GetResourceType(name string) (tftypes.Type, error) {
 }
 
 // GetProviderResourceSchema contains the definitions of all supported resources
-func GetProviderResourceSchema() map[string]*tfprotov5.Schema {
+func GetProviderResourceSchemas() map[string]*tfprotov5.Schema {
 	return map[string]*tfprotov5.Schema{
-		"cache_store": {
-			Version: 1,
-			Block: &tfprotov5.SchemaBlock{
-				BlockTypes: []*tfprotov5.SchemaNestedBlock{},
-				Attributes: []*tfprotov5.SchemaAttribute{
-					{
-						Name:        "timestamp",
-						Type:        tftypes.String,
-						Required:    false,
-						Computed:    true,
-						Optional:    false,
-						Description: "The timestamp this cached value was created",
-					},
-					{
-						Name:        "value",
-						Type:        tftypes.DynamicPseudoType,
-						Required:    true,
-						Optional:    false,
-						Computed:    false,
-						Description: "The value to cache.",
-					},
-				},
-			},
-		},
+		"cache_store": GetLatestCacheStoreSchema(),
+	}
+}
+
+// GetProviderResourceSchema contains the definitions of all supported resources
+func GetProviderResourceSchemasByVersion(version int64) map[string]*tfprotov5.Schema {
+	return map[string]*tfprotov5.Schema{
+		"cache_store": GetCacheStoreSchemaByVersion(version),
+	}
+}
+
+// GetProviderResourceSchema contains the definitions of all supported resources
+func GetProviderResourceUpgradeFunctions() map[string]func(resourceValue tftypes.Value, fromVersion int64) (tftypes.Value, error) {
+	return map[string]func(resourceValue tftypes.Value, fromVersion int64) (tftypes.Value, error){
+		"cache_store": CacheStoreUpgradeResource,
 	}
 }
